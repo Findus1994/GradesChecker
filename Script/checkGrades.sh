@@ -5,6 +5,7 @@
 username="username"
 password="password"
 accessToken="accessToken"
+installationPath="${HOME}/CheckGrades"
 
 # For normal you don't have to change anything here. If the script producing an error you can check if all the urls and field names are still valid.
 userfieldname="asdf"
@@ -15,7 +16,7 @@ gradessitebegin="https://stud.zv.hs-heilbronn.de/qisstudent/rds?state=notenspieg
 gradessiteend='#auswahlBaum%7Cabschluss%3Aabschl%3D88%2Cstgnr%3D1'
 logoutsite="https://stud.zv.hs-heilbronn.de/qisstudent/rds?state=user&type=4&re=last&category=auth.logout&breadCrumbSource=&topitem=functions"
 cookieinformationfile=".cookies.txt"
-gradesFile="${HOME}/checkGradesMax/"$(date "+%Y.%m.%d-%H.%M.%S").xml
+gradesFile="$installationPath"$(date "+%Y.%m.%d-%H.%M.%S").xml
 tableFile=.rohTable.html
 header="Access-Token: $accessToken"
 inital=true
@@ -37,7 +38,7 @@ fi
 echo -e "\nAuthor: $author\nVersion: $version\n"
 
 # Checking for an older file to decide either producing an initial download or compare the files
-olderFile=$(find "${HOME}/checkGradesMax/" -name '*xml' -print | head -n 1)
+olderFile=$(find "$installationPath" -name '*xml' -print | head -n 1)
 if [[ -z "$olderFile" ]]
 then
   echo "Keine Ältere Datei gefunden! Initialer Download wird durchgeführt!"
