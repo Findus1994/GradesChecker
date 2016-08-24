@@ -3,9 +3,9 @@
 
 # Edit these information with your credentials and your accesstoken from PushBullet
 username="username"
-password="password"
+password='password'
 accessToken="accessToken"
-installationPath="${HOME}/CheckGrades"
+installationPath="${HOME}/checkGrades/"
 
 # For normal you don't have to change anything here. If the script producing an error you can check if all the urls and field names are still valid.
 userfieldname="asdf"
@@ -50,9 +50,9 @@ echo ""
 echo "-------------------Daten hohlen-------------------"
 #Login (Saving the JSESSION)
 echo -n "Login wird durchgeführt..."
-wget --save-cookies $cookieinformationfile --keep-session-cookies --delete-after \
+wget --save-cookies $cookieinformationfile --keep-session-cookies \
      --post-data "$userfieldname=$username&$passfieldname=$password&submit=Login" \
-     "$loginformactionsite" > /dev/null 2>&1
+     "$loginformactionsite" -O "LoginProcess.html" > /dev/null 2>&1
 echo "[DONE]"
 
 # Gathering the ASI informationen
@@ -78,8 +78,17 @@ fi
 
 cat .test.html | grep "asi=" -m 1 | awk -F"asi=" '{print $2}' | awk -F"\"" '{print $1}' > /dev/null 2>&1
 asi=$(cat .test.html | grep "asi=" -m 1 | awk -F"asi=" '{print $2}' | awk -F"\"" '{print $1}')
-rm .test.html
 echo "[DONE] ($asi)"
+
+if [ -z "$asi" ]
+then
+  mv .test.html ASIExtractionProcess.html
+  echo -e "\nFehler! Es konnten keine asi gefunden werden. Dies passiert wenn die Logindaten falsch sind oder die Seite inzwischen geaendert wurde. Bitte ueberpruefe die nun im Verzeichnis liegende LoginProcess.html und ASIExtractionProcess.html auf entsprechende Fehlermeldungen"
+  echo -e "\nSkript abbrechen..."
+  exit
+fi
+rm .test.html
+rm LoginProcess.html
 
 # Gathering grades
 echo -n "Lade Noten..."
