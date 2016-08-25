@@ -1,11 +1,21 @@
 #! /bin/bash
-# Checking grades for the grade information system of the university Heilbronn. Written bei Maximilian Westers. For more information see https://github.com/Findus1994/GradesChecker/wiki 
+# Checking grades for the grade information system of the university Heilbronn. Written by Maximilian Westers. For more information see https://github.com/Findus1994/GradesChecker/wiki
 
 # Edit these information with your credentials and your accesstoken from PushBullet
 username="username"
 password='password'
 accessToken="accessToken"
 installationPath="${HOME}/checkGrades/"
+createHookFolderIfTheyNotExist=true
+
+# Hook folders paths! All executable files will be executed in this folders. All scripts will be executed at the beginning of the specified phase
+loginhookpath=$installationPath"loginHook/"
+gatherasihookpath=$installationPath"gatherASIHook/"
+loadgradeshookpath=$installationPath"loadGradesHook/"
+logouthookpath=$installationPath"logoutHook/"
+processgradeshookpath=$installationPath"processGradesHook/"
+sendnotificationhookpath=$installationPath"sendNotificationHook/"
+finishhookpath=$installationPath"finishHook/"
 
 # For normal you don't have to change anything here. If the script producing an error you can check if all the urls and field names are still valid.
 userfieldname="asdf"
@@ -25,6 +35,29 @@ version="2.0"
 
 # If you want an other MOTD, feel free to change this one or change the path!
 motdfile="./MotD.txt"
+
+# Declaring functions
+process_hook_folder () {
+  foldername=$1
+  if [ -d $foldername ]
+  then
+    for fn in `find $foldername -executable -type f`; do
+      /bin/bash $fn
+    done
+  fi
+}
+
+# Checking hook folders
+if [ "$createHookFolderIfTheyNotExist" = true ]
+then
+  mkdir -p $loginhookpath
+  mkdir -p $gatherasihookpath
+  mkdir -p $loadgradeshookpath
+  mkdir -p $logouthookpath
+  mkdir -p $processgradeshookpath
+  mkdir -p $sendnotificationhookpath
+  mkdir -p $finishhookpath
+fi
 
 # Starting Program: Clearing terminal, showing MotD and other information
 clear
@@ -49,6 +82,7 @@ fi
 echo ""
 echo "-------------------Daten hohlen-------------------"
 #Login (Saving the JSESSION)
+process_hook_folder $loginhookpath
 echo -n "Login wird durchgeführt..."
 wget --save-cookies $cookieinformationfile --keep-session-cookies \
      --post-data "$userfieldname=$username&$passfieldname=$password&submit=Login" \
@@ -56,6 +90,7 @@ wget --save-cookies $cookieinformationfile --keep-session-cookies \
 echo "[DONE]"
 
 # Gathering the ASI informationen
+process_hook_folder $gatherasihookpath
 echo -n "ASI wird extrahiert..."
 wget --load-cookies $cookieinformationfile \
      --local-encoding=utf-8 \
@@ -91,6 +126,7 @@ rm .test.html
 rm LoginProcess.html
 
 # Gathering grades
+process_hook_folder $loadgradeshookpath
 echo -n "Lade Noten..."
 gradessite="$gradessitebegin$asi$gradessiteend"
 wget --load-cookies $cookieinformationfile --local-encoding=utf-8 -O .Grades.html "$gradessite" > /dev/null 2>&1
@@ -110,6 +146,7 @@ else
 fi
 
 # Logout
+process_hook_folder $logouthookpath
 echo -n "Session wird invalidiert..."
 wget --load-cookies $cookieinformationfile --local-encoding=utf-8 --delete-after "$logoutsite" > /dev/null 2>&1
 
@@ -119,6 +156,7 @@ echo "[DONE]"
 echo ""
 echo "-------------------Daten Formatieren------------------"
 
+process_hook_folder $processgradeshookpath
 # Getting position of start and end of the gradestable
 echo -n "Extrahieren der Daten in XML-File..."
 anfangnormtabelle=$(egrep -n "<table border=\"0\">" .Grades.html | cut -d":" -f1)
@@ -225,6 +263,7 @@ then
 # Sending PushBullet Notification if new grade was detected
   if [ $countOld -lt $countNew ]
   then
+    process_hook_folder $sendnotificationhookpath
     echo "Neue Note gefunden. Sende Info an über PushBullet!"
     curl --header "$header" -X POST https://api.pushbullet.com/v2/pushes --header "Content-Type: application/json" --data-binary "{\"type\": \"note\", \"title\": \"Neue Note!\", \"body\": \"Es wurde eine neue Note eingetragen!\"}" > /dev/null
   else
@@ -244,3 +283,5 @@ else
   echo "Initialer Download abgeschlossen!"
   curl --header "$header" -X POST https://api.pushbullet.com/v2/pushes --header "Content-Type: application/json" --data-binary "{\"type\": \"note\", \"title\": \"CheckGrades ist bereit!\", \"body\": \"Initialer Download wurde abgeschlossen! Das Script ist nun bereit Noten zu überprüfen.\"}" > /dev/null
 fi
+
+process_hook_folder $finishhookpath
